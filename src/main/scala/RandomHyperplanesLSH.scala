@@ -141,7 +141,7 @@ class RandomHyperplanesLSH(override val uid: String) extends LSH[RandomHyperplan
   override protected[ml] def createRawLSHModel(inputDim: Int): RandomHyperplanesLSHModel = {
     val rand = new Random($(seed))
     val randPlanes: Array[Vector] = Array.fill($(numHashTables)) {
-        Vectors.dense(Array.fill(inputDim)(rand.nextDouble))
+        Vectors.dense(Array.fill(inputDim)(2*rand.nextDouble - 1))
       }
     new RandomHyperplanesLSHModel(uid, randPlanes)
   }
@@ -156,14 +156,6 @@ class RandomHyperplanesLSH(override val uid: String) extends LSH[RandomHyperplan
   override def copy(extra: ParamMap): this.type = defaultCopy(extra)
 }
 
-//@Since("2.1.0")
-//object RandomHyperplanesLSH extends DefaultParamsReadable[RandomHyperplanesLSH] {
-//  // A large prime smaller than sqrt(2^63 − 1)
-//  private[ml] val HASH_PRIME = 2038074743
-//
-//  @Since("2.1.0")
-//  override def load(path: String): RandomHyperplanesLSH = super.load(path)
-//}
 
 @Since("2.1.0")
 object RandomHyperplanesLSHModel extends MLReadable[RandomHyperplanesLSHModel] {
@@ -181,7 +173,6 @@ object RandomHyperplanesLSHModel extends MLReadable[RandomHyperplanesLSHModel] {
 
     override protected def saveImpl(path: String): Unit = {
       DefaultParamsWriter.saveMetadata(instance, path, sc)
-      //val data = Data(instance.randPlanes.flatMap(_.toArray))
       val data = Data(instance.randPlanes);
       val dataPath = new Path(path, "data").toString
       sparkSession.createDataFrame(Seq(data)).repartition(1).write.parquet(dataPath)
@@ -198,8 +189,6 @@ object RandomHyperplanesLSHModel extends MLReadable[RandomHyperplanesLSHModel] {
 
       val dataPath = new Path(path, "data").toString
       val data = sparkSession.read.parquet(dataPath).select("randPlanes").head()
-      //val randPlanes = data.getSeq[Int](0).grouped(2)
-      //  .map(tuple => (tuple(0), tuple(1))).toArray
       val randPlanes = data.getSeq[Vector](0).toArray
       val model = new RandomHyperplanesLSHModel(metadata.uid, randPlanes)
 
